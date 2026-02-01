@@ -183,14 +183,14 @@ const FloydCycleVisualizer = () => {
               onClick={() => setIsPlaying(!isPlaying)}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition"
             >
-              {isPlaying ? <span className="text-lg leading-none">⏸</span> : <span className="text-lg leading-none">▶</span>}
+              {isPlaying ? <span className="text-lg">⏸</span> : <span className="text-lg">▶</span>}
               {isPlaying ? 'Pause' : 'Play'}
             </button>
             <button
               onClick={reset}
               className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-medium transition"
             >
-              <span className="text-lg leading-none">↺</span>
+              <span className="text-lg">↺</span>
               Reset
             </button>
           </div>
@@ -377,7 +377,7 @@ const FloydCycleVisualizer = () => {
             className="w-full p-6 flex items-center justify-between hover:bg-slate-750 transition"
           >
             <h2 className="text-2xl font-bold">Understanding the Proof</h2>
-            {showProof ? <span className="text-base">⌃</span> : <span className="text-base">⌄</span>}
+            {showProof ? <span className="text-lg">▲</span> : <span className="text-lg">▼</span>}
           </button>
 
           {showProof && (
@@ -423,24 +423,186 @@ const FloydCycleVisualizer = () => {
 
               <section>
                 <h3 className="text-xl font-bold text-green-400 mb-3">Part 3: Finding where the cycle starts</h3>
+                
+                <h4 className="text-lg font-semibold text-green-300 mt-4 mb-2">A Concrete Example</h4>
                 <p className="text-slate-300 mb-3">
-                  Now we reset the slow pointer to the start (node 0) and keep the fast pointer where they met. 
-                  We move both pointers <strong>one step at a time</strong> (same speed now).
+                  Let's use a specific linked list to make this crystal clear:
                 </p>
-                <p className="text-slate-300 mb-3">
-                  Let's say there are <strong>μ</strong> nodes before the cycle starts (the "tail"). When the slow pointer 
-                  reaches the cycle start after μ steps, the fast pointer will have also moved μ steps from the meeting point.
-                </p>
-                <p className="text-slate-300 mb-3">
-                  Since we know the meeting point is positioned such that k steps divides evenly into the cycle, 
-                  moving μ more steps brings the fast pointer back to the cycle start. They meet exactly at the first node of the cycle!
-                </p>
-                <div className="bg-slate-900 p-4 rounded border border-slate-600">
-                  <p className="text-sm font-mono text-green-300">
-                    The math: If tail = 3 and cycle = 4, and they met after slow walked 6 steps, 
-                    then 6 = 3 (tail) + 3 (into cycle). Moving slow 3 more from start and fast 3 more from meeting point 
-                    both land at the cycle start.
+                <div className="bg-slate-900 p-4 rounded border border-slate-600 mb-4">
+                  <pre className="text-sm font-mono text-green-200">
+{`0 → 1 → 2 → 3 → 4 → 5 → 6
+            ↑           ↓
+            9 ← 8 ← 7 ←┘`}
+                  </pre>
+                  <p className="text-sm text-slate-400 mt-2">
+                    • Tail length (μ): 3 nodes (0, 1, 2)<br/>
+                    • Cycle start: node 3<br/>
+                    • Cycle length (C): 7 nodes (3, 4, 5, 6, 7, 8, 9)
                   </p>
+                </div>
+
+                <h4 className="text-lg font-semibold text-green-300 mb-2">Phase 1: Meeting Point</h4>
+                <p className="text-slate-300 mb-2">Initial positions: Slow and Fast both start at node 0</p>
+                <div className="bg-slate-900 p-4 rounded border border-slate-600 mb-4">
+                  <p className="text-sm font-mono text-green-200">
+                    Step 1: Slow at 1, Fast at 2<br/>
+                    Step 2: Slow at 2, Fast at 4<br/>
+                    Step 3: Slow at 3, Fast at 6<br/>
+                    Step 4: Slow at 4, Fast at 8<br/>
+                    Step 5: Slow at 5, Fast at 3 (wrapped around)<br/>
+                    Step 6: Slow at 6, Fast at 5<br/>
+                    Step 7: Slow at 7, Fast at 7 ✓ They meet!
+                  </p>
+                  <p className="text-sm text-amber-300 mt-2">
+                    At meeting: slow took k = 7 steps, fast took 2k = 14 steps
+                  </p>
+                </div>
+
+                <h4 className="text-lg font-semibold text-green-300 mb-2">Phase 2: Reset and Find Cycle Start</h4>
+                <p className="text-slate-300 mb-2">
+                  Reset slow to node 0, keep fast at node 7 (meeting point). Now move both at same speed:
+                </p>
+                <div className="bg-slate-900 p-4 rounded border border-slate-600 mb-4">
+                  <p className="text-sm font-mono text-green-200">
+                    Step 1: Slow at 1, Fast at 8<br/>
+                    Step 2: Slow at 2, Fast at 9<br/>
+                    Step 3: Slow at 3, Fast at 3 ✓ They meet at cycle start!
+                  </p>
+                </div>
+
+                <h4 className="text-lg font-semibold text-green-300 mt-6 mb-2">Detailed Mathematical Proof</h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-semibold text-slate-200 mb-2">Setup and Definitions</p>
+                    <p className="text-slate-300 mb-2">Let:</p>
+                    <ul className="text-slate-300 space-y-1 ml-4">
+                      <li>• μ = length of tail (nodes before cycle)</li>
+                      <li>• C = length of cycle</li>
+                      <li>• k = steps taken by slow pointer when they first meet</li>
+                      <li>• m = position within cycle where they meet (0 ≤ m &lt; C)</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-slate-200 mb-2">What Happens at Meeting Point</p>
+                    <p className="text-slate-300 mb-2">When slow and fast meet:</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600 text-sm space-y-2">
+                      <div>
+                        <p className="text-cyan-300 font-semibold">Slow's position:</p>
+                        <p className="text-slate-300 ml-3">
+                          • Traveled k steps total<br/>
+                          • μ steps to reach cycle start<br/>
+                          • (k - μ) steps within the cycle<br/>
+                          • Position in cycle: m = (k - μ) mod C
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-pink-300 font-semibold">Fast's position:</p>
+                        <p className="text-slate-300 ml-3">
+                          • Traveled 2k steps total<br/>
+                          • μ steps to reach cycle start<br/>
+                          • (2k - μ) steps within the cycle<br/>
+                          • Position in cycle: (2k - μ) mod C
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-slate-200 mb-2">Key Equation</p>
+                    <p className="text-slate-300 mb-2">Since they meet at the same node:</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                      <p className="text-sm font-mono text-amber-200">
+                        (k - μ) mod C = (2k - μ) mod C<br/><br/>
+                        Simplifying:<br/>
+                        k - μ ≡ 2k - μ (mod C)<br/>
+                        k ≡ 2k (mod C)<br/>
+                        0 ≡ k (mod C)
+                      </p>
+                    </div>
+                    <p className="text-green-300 font-semibold mt-2">
+                      This proves: k = nC for some integer n
+                    </p>
+                    <p className="text-slate-300 italic">
+                      In other words, k is an exact multiple of the cycle length!
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-slate-200 mb-2">Why Resetting Works</p>
+                    <p className="text-slate-300 mb-2">After reset:</p>
+                    <ul className="text-slate-300 space-y-1 ml-4 mb-3">
+                      <li>• Slow: starts at node 0</li>
+                      <li>• Fast: at meeting point (which is μ + m nodes from start)</li>
+                    </ul>
+                    
+                    <p className="text-slate-300 mb-2">After moving both μ steps:</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600 text-sm space-y-2">
+                      <p className="text-cyan-300">
+                        Slow's position: 0 + μ = μ (the cycle start)
+                      </p>
+                      <div>
+                        <p className="text-pink-300">Fast's position:</p>
+                        <p className="text-slate-300 ml-3">
+                          • Started at position (μ + m) from the beginning<br/>
+                          • Moves μ more steps<br/>
+                          • Total: μ + m + μ = 2μ + m
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-slate-300 mt-3 mb-2">
+                      But we know k = μ + m (slow's original journey to meeting point)
+                    </p>
+                    <p className="text-slate-300 mb-2">
+                      And we proved k = nC, so:
+                    </p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600 mb-3">
+                      <p className="text-sm font-mono text-amber-200">
+                        μ + m = nC<br/>
+                        m = nC - μ
+                      </p>
+                    </div>
+                    
+                    <p className="text-slate-300 mb-2">Fast's final position:</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600 mb-3">
+                      <p className="text-sm font-mono text-amber-200">
+                        2μ + m = 2μ + (nC - μ) = μ + nC
+                      </p>
+                    </div>
+                    
+                    <p className="text-slate-300 mb-2">Since we're in a cycle, we take mod C:</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                      <p className="text-sm font-mono text-amber-200">
+                        (μ + nC) mod (total length) = μ
+                      </p>
+                    </div>
+                    
+                    <p className="text-green-300 font-semibold mt-3">
+                      Both pointers are at position μ — the cycle start!
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-slate-200 mb-2">Numerical Verification (Using Our Example)</p>
+                    <div className="bg-slate-900 p-3 rounded border border-slate-600">
+                      <p className="text-sm text-slate-300">
+                        • μ = 3, C = 7, k = 7<br/>
+                        • Check: k = nC? → 7 = 1 × 7 ✓<br/>
+                        • Meeting position: m = k - μ = 7 - 3 = 4 (node 7 is 4 steps into cycle from node 3)<br/>
+                        • After reset and μ more steps: both at node 3 ✓
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-green-700 pt-4 mt-4">
+                    <p className="text-green-200 italic">
+                      <strong>The beauty is that no matter where they meet in the cycle</strong>, the mathematics guarantees 
+                      that moving both pointers μ steps will bring them together at the cycle start, because the meeting 
+                      point is always positioned exactly right due to the k = nC relationship.
+                    </p>
+                  </div>
                 </div>
               </section>
 
@@ -484,7 +646,7 @@ const FloydCycleVisualizer = () => {
       </div>
     </div>
   );
-};
+}
 
 // Mount to page
 const root = ReactDOM.createRoot(document.getElementById("root"));
