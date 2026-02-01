@@ -1,9 +1,9 @@
 const { useState, useEffect } = React;
 
 const AdjacencyEdgeListViz = () => {
-  const [nodes, setNodes] = useState([0, 1, 2, 3]);
+  const [nodes, setNodes] = useState([0, 1, 2, 3, 4, 5, 6, 7]);
   const [edges, setEdges] = useState([]);
-  const [head, setHead] = useState(Array(4).fill(-1));
+  const [head, setHead] = useState(Array(8).fill(-1));
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [highlightedEdge, setHighlightedEdge] = useState(null);
@@ -11,12 +11,32 @@ const AdjacencyEdgeListViz = () => {
   const [fromNode, setFromNode] = useState(0);
   const [toNode, setToNode] = useState(1);
   const [edgeWeight, setEdgeWeight] = useState(1);
+  const [exampleMode, setExampleMode] = useState(false);
+  const [exampleStep, setExampleStep] = useState(0);
+
+  const exampleEdges = [
+    { from: 0, to: 1, weight: 5 },
+    { from: 0, to: 3, weight: 3 },
+    { from: 1, to: 2, weight: 2 },
+    { from: 1, to: 4, weight: 4 },
+    { from: 2, to: 5, weight: 6 },
+    { from: 3, to: 4, weight: 7 },
+    { from: 4, to: 5, weight: 1 },
+    { from: 4, to: 7, weight: 3 },
+    { from: 5, to: 7, weight: 2 },
+    { from: 6, to: 3, weight: 5 },
+    { from: 7, to: 6, weight: 4 }
+  ];
 
   const nodePositions = {
-    0: { x: 150, y: 100 },
-    1: { x: 350, y: 100 },
-    2: { x: 150, y: 250 },
-    3: { x: 350, y: 250 }
+    0: { x: 100, y: 80 },
+    1: { x: 250, y: 80 },
+    2: { x: 400, y: 80 },
+    3: { x: 100, y: 200 },
+    4: { x: 250, y: 200 },
+    5: { x: 400, y: 200 },
+    6: { x: 175, y: 320 },
+    7: { x: 325, y: 320 }
   };
 
   const addEdge = () => {
@@ -41,21 +61,75 @@ const AdjacencyEdgeListViz = () => {
 
   const reset = () => {
     setEdges([]);
-    setHead(Array(4).fill(-1));
+    setHead(Array(8).fill(-1));
     setCurrentStep(0);
     setIsPlaying(false);
     setHighlightedEdge(null);
     setHighlightedNode(null);
+    setExampleMode(false);
+    setExampleStep(0);
+  };
+
+  const startExample = () => {
+    reset();
+    setExampleMode(true);
+    setExampleStep(0);
+  };
+
+  const nextExampleStep = () => {
+    if (exampleStep >= exampleEdges.length) return;
+
+    const edge = exampleEdges[exampleStep];
+    const newEdge = {
+      id: edges.length,
+      to: edge.to,
+      weight: edge.weight,
+      next: head[edge.from],
+      from: edge.from
+    };
+
+    setEdges([...edges, newEdge]);
+    const newHead = [...head];
+    newHead[edge.from] = edges.length;
+    setHead(newHead);
+    setHighlightedEdge(edges.length);
+    setHighlightedNode(edge.from);
+
+    setTimeout(() => {
+      setHighlightedEdge(null);
+      setHighlightedNode(null);
+    }, 1000);
+
+    setExampleStep(exampleStep + 1);
+  };
+
+  const prevExampleStep = () => {
+    if (exampleStep <= 0) return;
+
+    const newEdges = edges.slice(0, -1);
+    setEdges(newEdges);
+
+    // Rebuild head array from remaining edges (safe rebuild)
+    const newHead = Array(8).fill(-1);
+    for (let i = newEdges.length - 1; i >= 0; i--) {
+      const e = newEdges[i];
+      // the latest edge for each from-node should be the highest id remaining
+      if (newHead[e.from] === -1) newHead[e.from] = e.id;
+    }
+    setHead(newHead);
+
+    setExampleStep(exampleStep - 1);
   };
 
   const traverseEdges = (nodeId) => {
+    if (exampleMode) return;
     setHighlightedNode(nodeId);
     let edgeId = head[nodeId];
     const edgeSequence = [];
 
     while (edgeId !== -1) {
       edgeSequence.push(edgeId);
-      edgeId = edges[edgeId].next;
+      edgeId = edges[edgeId]?.next ?? -1;
     }
 
     let idx = 0;
@@ -74,13 +148,8 @@ const AdjacencyEdgeListViz = () => {
   const loadExample = () => {
     reset();
     setTimeout(() => {
-      const exampleEdges = [
-        { from: 0, to: 1, weight: 5 },
-        { from: 0, to: 2, weight: 3 },
-        { from: 1, to: 3, weight: 2 },
-        { from: 2, to: 3, weight: 7 },
-        { from: 3, to: 1, weight: 1 }
-      ];
+      const tempHead = Array(8).fill(-1);
+      const tempEdges = [];
 
       exampleEdges.forEach((edge, i) => {
         setTimeout(() => {
@@ -88,30 +157,15 @@ const AdjacencyEdgeListViz = () => {
             id: i,
             to: edge.to,
             weight: edge.weight,
-            next: i === 0 ? -1 : (edge.from === exampleEdges[i - 1].from ? i - 1 : -1),
+            next: tempHead[edge.from],
             from: edge.from
           };
 
-          setEdges((prev) => [...prev, newEdge]);
+          tempEdges.push(newEdge);
+          tempHead[edge.from] = i;
 
-          setHead((prev) => {
-            const newHead = [...prev];
-            let shouldUpdate = true;
-
-            for (let j = i - 1; j >= 0; j--) {
-              if (exampleEdges[j].from === edge.from) {
-                shouldUpdate = false;
-                break;
-              }
-            }
-
-            if (shouldUpdate || i === 0) {
-              newEdge.next = newHead[edge.from];
-              newHead[edge.from] = i;
-            }
-
-            return newHead;
-          });
+          setEdges([...tempEdges]);
+          setHead([...tempHead]);
 
           setHighlightedEdge(i);
           setTimeout(() => setHighlightedEdge(null), 500);
@@ -124,7 +178,7 @@ const AdjacencyEdgeListViz = () => {
     <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8 overflow-auto">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">Adjacency Edge List Visualization</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Chain Forward Star(Adjacency Edge List) Visualization</h1>
           <p className="text-purple-200">An efficient graph representation combining adjacency lists and edge lists</p>
         </div>
 
@@ -132,8 +186,7 @@ const AdjacencyEdgeListViz = () => {
           {/* Graph Visualization */}
           <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
             <h2 className="text-xl font-semibold text-white mb-4">Graph Representation</h2>
-            <svg width="500" height="350" className="bg-slate-900/50 rounded">
-              {/* Draw edges */}
+            <svg width="500" height="380" className="bg-slate-900/50 rounded">
               {edges.map((edge) => {
                 const from = nodePositions[edge.from];
                 const to = nodePositions[edge.to];
@@ -182,7 +235,6 @@ const AdjacencyEdgeListViz = () => {
                 </marker>
               </defs>
 
-              {/* Draw nodes */}
               {nodes.map((node) => (
                 <g key={node} onClick={() => traverseEdges(node)} className="cursor-pointer">
                   <circle
@@ -214,8 +266,7 @@ const AdjacencyEdgeListViz = () => {
           {/* Linked List Representation */}
           <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30 overflow-auto">
             <h2 className="text-xl font-semibold text-white mb-4">Adjacency Linked List View</h2>
-
-            <div className="space-y-4 max-h-[350px] overflow-y-auto">
+            <div className="space-y-4 max-h-[380px] overflow-y-auto">
               {nodes.map((node) => {
                 const nodeEdges = [];
                 let edgeId = head[node];
@@ -235,6 +286,7 @@ const AdjacencyEdgeListViz = () => {
                       Node {node}
                     </div>
 
+                    {/* ChevronRight replacement */}
                     <span className="text-purple-400 flex-shrink-0 text-lg">›</span>
 
                     {nodeEdges.length === 0 ? (
@@ -257,12 +309,11 @@ const AdjacencyEdgeListViz = () => {
                             </div>
 
                             {idx < nodeEdges.length - 1 && (
-                              <span className="text-slate-600 flex-shrink-0 text-lg">›</span>
+                              <span className="text-slate-600 flex-shrink-0 text-base">›</span>
                             )}
                           </React.Fragment>
                         ))}
-
-                        <span className="text-slate-600 flex-shrink-0 text-lg">›</span>
+                        <span className="text-slate-600 flex-shrink-0 text-base">›</span>
                         <div className="bg-slate-900 text-slate-500 px-3 py-1 rounded text-xs">NULL</div>
                       </div>
                     )}
@@ -336,73 +387,137 @@ const AdjacencyEdgeListViz = () => {
         <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
           <h2 className="text-xl font-semibold text-white mb-4">Controls</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-purple-300 mb-3">Add Edge</h3>
-              <div className="flex gap-3 items-end flex-wrap">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">From</label>
-                  <select
-                    value={fromNode}
-                    onChange={(e) => setFromNode(Number(e.target.value))}
-                    className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700"
+          {!exampleMode ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-purple-300 mb-3">Add Edge</h3>
+                <div className="flex gap-3 items-end flex-wrap">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">From</label>
+                    <select
+                      value={fromNode}
+                      onChange={(e) => setFromNode(Number(e.target.value))}
+                      className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700"
+                    >
+                      {nodes.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">To</label>
+                    <select
+                      value={toNode}
+                      onChange={(e) => setToNode(Number(e.target.value))}
+                      className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700"
+                    >
+                      {nodes.map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Weight</label>
+                    <input
+                      type="number"
+                      value={edgeWeight}
+                      onChange={(e) => setEdgeWeight(Number(e.target.value))}
+                      className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700 w-20"
+                    />
+                  </div>
+
+                  <button
+                    onClick={addEdge}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
                   >
-                    {nodes.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
+                    {/* Plus replacement */}
+                    <span className="text-lg leading-none">+</span>
+                    Add
+                  </button>
                 </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">To</label>
-                  <select
-                    value={toNode}
-                    onChange={(e) => setToNode(Number(e.target.value))}
-                    className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700"
-                  >
-                    {nodes.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Weight</label>
-                  <input
-                    type="number"
-                    value={edgeWeight}
-                    onChange={(e) => setEdgeWeight(Number(e.target.value))}
-                    className="bg-slate-900 text-white rounded px-3 py-2 border border-slate-700 w-20"
-                  />
-                </div>
+              </div>
+
+              <div className="flex gap-3 items-end justify-end flex-wrap">
                 <button
-                  onClick={addEdge}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+                  onClick={startExample}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
                 >
-                  <span className="text-lg leading-none">+</span>
-                  Add
+                  Start Example
+                </button>
+                <button
+                  onClick={loadExample}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors"
+                >
+                  Auto Load
+                </button>
+                <button
+                  onClick={reset}
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+                >
+                  {/* RotateCcw replacement */}
+                  <span className="text-lg leading-none">↺</span>
+                  Reset
                 </button>
               </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-purple-500/30">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-medium text-purple-300">Example Mode</h3>
+                  <span className="text-sm text-slate-400">
+                    Step {exampleStep} of {exampleEdges.length}
+                  </span>
+                </div>
 
-            <div className="flex gap-3 items-end justify-end">
-              <button
-                onClick={loadExample}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
-              >
-                Load Example
-              </button>
-              <button
-                onClick={reset}
-                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
-              >
-                <span className="text-lg leading-none">↺</span>
-                Reset
-              </button>
+                {exampleStep < exampleEdges.length && (
+                  <div className="bg-slate-800 rounded p-3 mb-3">
+                    <div className="text-sm text-purple-200">
+                      Next: Add edge from{" "}
+                      <span className="font-bold text-purple-400">node {exampleEdges[exampleStep].from}</span> to{" "}
+                      <span className="font-bold text-purple-400">node {exampleEdges[exampleStep].to}</span> with weight{" "}
+                      <span className="font-bold text-purple-400">{exampleEdges[exampleStep].weight}</span>
+                    </div>
+                  </div>
+                )}
+
+                {exampleStep === exampleEdges.length && (
+                  <div className="bg-green-900/30 border border-green-500/50 rounded p-3 mb-3">
+                    <div className="text-sm text-green-200 font-medium">✓ Example complete! All edges have been added.</div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    onClick={prevExampleStep}
+                    disabled={exampleStep === 0}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-600 text-white px-4 py-2 rounded transition-colors"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={nextExampleStep}
+                    disabled={exampleStep >= exampleEdges.length}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900 disabled:text-purple-700 text-white px-4 py-2 rounded transition-colors"
+                  >
+                    Next →
+                  </button>
+                  <button
+                    onClick={reset}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+                  >
+                    {/* RotateCcw replacement */}
+                    <span className="text-lg leading-none">↺</span>
+                    Exit
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Algorithm Explanation */}
