@@ -97,14 +97,14 @@ const FloydCycleVisualizer = () => {
   }, [isPlaying, phase, slowPos, fastPos, speed]);
 
   const getNodePosition = (index) => {
-    const centerX = 400;
+    const centerX = 450;
     const centerY = 300;
     const radius = 150;
     
     if (index < tailLength) {
-      const startX = centerX - radius - 100;
-      const startY = centerY - (tailLength - 1) * 30;
-      return { x: startX, y: startY + index * 60 };
+      const startX = centerX - radius - 150;
+      const startY = centerY - (tailLength - 1) * 40;
+      return { x: startX, y: startY + index * 80 };
     }
     
     const cycleIndex = index - tailLength;
@@ -258,39 +258,39 @@ const FloydCycleVisualizer = () => {
             {phase === 'detection' && (
               <>
                 <circle
-                  cx={getNodePosition(slowPos).x}
-                  cy={getNodePosition(slowPos).y - 40}
-                  r="15"
+                  cx={getNodePosition(slowPos).x - 45}
+                  cy={getNodePosition(slowPos).y}
+                  r="18"
                   fill="#22d3ee"
                   stroke="#fff"
                   strokeWidth="2"
                 />
                 <text
-                  x={getNodePosition(slowPos).x}
-                  y={getNodePosition(slowPos).y - 40}
+                  x={getNodePosition(slowPos).x - 45}
+                  y={getNodePosition(slowPos).y}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#000"
-                  fontSize="12"
+                  fontSize="14"
                   fontWeight="bold"
                 >
                   S
                 </text>
                 <circle
-                  cx={getNodePosition(fastPos).x}
-                  cy={getNodePosition(fastPos).y + 40}
-                  r="15"
+                  cx={getNodePosition(fastPos).x + 45}
+                  cy={getNodePosition(fastPos).y}
+                  r="18"
                   fill="#f472b6"
                   stroke="#fff"
                   strokeWidth="2"
                 />
                 <text
-                  x={getNodePosition(fastPos).x}
-                  y={getNodePosition(fastPos).y + 40}
+                  x={getNodePosition(fastPos).x + 45}
+                  y={getNodePosition(fastPos).y}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#000"
-                  fontSize="12"
+                  fontSize="14"
                   fontWeight="bold"
                 >
                   F
@@ -301,39 +301,39 @@ const FloydCycleVisualizer = () => {
             {(phase === 'finding' || phase === 'measuring') && (
               <>
                 <circle
-                  cx={getNodePosition(slowPos).x}
-                  cy={getNodePosition(slowPos).y - 40}
-                  r="15"
+                  cx={getNodePosition(slowPos).x - 45}
+                  cy={getNodePosition(slowPos).y}
+                  r="18"
                   fill="#22d3ee"
                   stroke="#fff"
                   strokeWidth="2"
                 />
                 <text
-                  x={getNodePosition(slowPos).x}
-                  y={getNodePosition(slowPos).y - 40}
+                  x={getNodePosition(slowPos).x - 45}
+                  y={getNodePosition(slowPos).y}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#000"
-                  fontSize="12"
+                  fontSize="14"
                   fontWeight="bold"
                 >
                   A
                 </text>
                 <circle
-                  cx={getNodePosition(fastPos).x}
-                  cy={getNodePosition(fastPos).y + 40}
-                  r="15"
+                  cx={getNodePosition(fastPos).x + 45}
+                  cy={getNodePosition(fastPos).y}
+                  r="18"
                   fill="#f472b6"
                   stroke="#fff"
                   strokeWidth="2"
                 />
                 <text
-                  x={getNodePosition(fastPos).x}
-                  y={getNodePosition(fastPos).y + 40}
+                  x={getNodePosition(fastPos).x + 45}
+                  y={getNodePosition(fastPos).y}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="#000"
-                  fontSize="12"
+                  fontSize="14"
                   fontWeight="bold"
                 >
                   B
