@@ -92,10 +92,7 @@ const AdjacencyEdgeListViz = () => {
             from: edge.from
           };
 
-          setEdges((prev) => {
-            const updated = [...prev, newEdge];
-            return updated;
-          });
+          setEdges((prev) => [...prev, newEdge]);
 
           setHead((prev) => {
             const newHead = [...prev];
@@ -179,7 +176,6 @@ const AdjacencyEdgeListViz = () => {
                 );
               })}
 
-              {/* Arrow marker */}
               <defs>
                 <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
                   <polygon points="0 0, 10 3, 0 6" fill="#6366f1" />
@@ -215,64 +211,123 @@ const AdjacencyEdgeListViz = () => {
             <p className="text-sm text-purple-200 mt-2">Click on a node to traverse its edges</p>
           </div>
 
-          {/* Data Structure */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
-            <h2 className="text-xl font-semibold text-white mb-4">Data Structure</h2>
+          {/* Linked List Representation */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30 overflow-auto">
+            <h2 className="text-xl font-semibold text-white mb-4">Adjacency Linked List View</h2>
 
-            {/* Head Array */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-purple-300 mb-2">head[] array</h3>
-              <div className="grid grid-cols-4 gap-2">
-                {head.map((val, idx) => (
+            <div className="space-y-4 max-h-[350px] overflow-y-auto">
+              {nodes.map((node) => {
+                const nodeEdges = [];
+                let edgeId = head[node];
+
+                while (edgeId !== -1 && edges[edgeId]) {
+                  nodeEdges.push(edges[edgeId]);
+                  edgeId = edges[edgeId].next;
+                }
+
+                return (
+                  <div key={node} className="flex items-center gap-2 flex-wrap">
+                    <div
+                      className={`bg-purple-700 text-white px-3 py-2 rounded font-bold text-sm whitespace-nowrap ${
+                        highlightedNode === node ? "ring-2 ring-purple-300" : ""
+                      }`}
+                    >
+                      Node {node}
+                    </div>
+
+                    <span className="text-purple-400 flex-shrink-0 text-lg">›</span>
+
+                    {nodeEdges.length === 0 ? (
+                      <div className="bg-slate-900 text-slate-500 px-3 py-2 rounded text-sm">NULL</div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {nodeEdges.map((edge, idx) => (
+                          <React.Fragment key={edge.id}>
+                            <div
+                              className={`bg-slate-900 border-2 px-3 py-2 rounded text-xs font-mono transition-all ${
+                                highlightedEdge === edge.id
+                                  ? "border-purple-400 shadow-lg shadow-purple-500/50"
+                                  : "border-slate-700"
+                              }`}
+                            >
+                              <div className="text-purple-300 mb-1">edge[{edge.id}]</div>
+                              <div className="text-white">to: {edge.to}</div>
+                              <div className="text-white">w: {edge.weight}</div>
+                              <div className="text-slate-400">next: {edge.next}</div>
+                            </div>
+
+                            {idx < nodeEdges.length - 1 && (
+                              <span className="text-slate-600 flex-shrink-0 text-lg">›</span>
+                            )}
+                          </React.Fragment>
+                        ))}
+
+                        <span className="text-slate-600 flex-shrink-0 text-lg">›</span>
+                        <div className="bg-slate-900 text-slate-500 px-3 py-1 rounded text-xs">NULL</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Arrays View */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Head Array */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
+            <h2 className="text-xl font-semibold text-white mb-4">head[] Array</h2>
+            <div className="grid grid-cols-4 gap-2">
+              {head.map((val, idx) => (
+                <div
+                  key={idx}
+                  className={`bg-slate-900 rounded p-3 border-2 transition-all ${
+                    highlightedNode === idx ? "border-purple-400" : "border-slate-700"
+                  }`}
+                >
+                  <div className="text-xs text-purple-300">node {idx}</div>
+                  <div className="text-lg font-mono text-white">{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Edges Array */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
+            <h2 className="text-xl font-semibold text-white mb-4">edges[] Array</h2>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {edges.length === 0 ? (
+                <div className="text-slate-400 text-sm">No edges yet. Add some edges to see the structure!</div>
+              ) : (
+                edges.map((edge, idx) => (
                   <div
                     key={idx}
                     className={`bg-slate-900 rounded p-3 border-2 transition-all ${
-                      highlightedNode === idx ? "border-purple-400" : "border-slate-700"
+                      highlightedEdge === idx ? "border-purple-400 shadow-lg shadow-purple-500/50" : "border-slate-700"
                     }`}
                   >
-                    <div className="text-xs text-purple-300">node {idx}</div>
-                    <div className="text-lg font-mono text-white">{val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Edges Array */}
-            <div>
-              <h3 className="text-lg font-medium text-purple-300 mb-2">edges[] array</h3>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {edges.length === 0 ? (
-                  <div className="text-slate-400 text-sm">No edges yet. Add some edges to see the structure!</div>
-                ) : (
-                  edges.map((edge, idx) => (
-                    <div
-                      key={idx}
-                      className={`bg-slate-900 rounded p-3 border-2 transition-all ${
-                        highlightedEdge === idx ? "border-purple-400 shadow-lg shadow-purple-500/50" : "border-slate-700"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-purple-300">edge[{idx}]</span>
-                        <span className="text-xs text-slate-400">from node {edge.from}</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-purple-300">edge[{idx}]</span>
+                      <span className="text-xs text-slate-400">from node {edge.from}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2 text-sm font-mono">
+                      <div>
+                        <div className="text-xs text-slate-400">to</div>
+                        <div className="text-white">{edge.to}</div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 mt-2 text-sm font-mono">
-                        <div>
-                          <div className="text-xs text-slate-400">to</div>
-                          <div className="text-white">{edge.to}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-400">weight</div>
-                          <div className="text-white">{edge.weight}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-400">next</div>
-                          <div className="text-white">{edge.next}</div>
-                        </div>
+                      <div>
+                        <div className="text-xs text-slate-400">weight</div>
+                        <div className="text-white">{edge.weight}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-400">next</div>
+                        <div className="text-white">{edge.next}</div>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
