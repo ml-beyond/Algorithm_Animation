@@ -1,0 +1,188 @@
+
+<h2 class="sr-only">0-1 Knapsack Problem — interactive dynamic programming table visualizer</h2>
+<style>
+.kp-icard{padding:8px 12px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);font-family:var(--font-mono);font-size:13px;display:flex;flex-direction:column;gap:3px;transition:background .2s,border-color .2s;min-width:76px}
+.kp-icard.active{border-color:#185FA5;background:#E6F1FB}
+.kp-icard input[type=number]{width:30px;font-family:var(--font-mono);font-size:13px;border:none;background:transparent;color:inherit;padding:0;-moz-appearance:textfield}
+.kp-icard input::-webkit-inner-spin-button{display:none}
+.kp-cb{color:var(--color-text-tertiary)}
+.kp-cd{color:var(--color-text-tertiary);font-style:italic}
+.kp-cn{color:var(--color-text-primary)}
+.kp-cu{background:#EAF3DE;color:#3B6D11;border-radius:3px}
+.kp-cc{background:#185FA5;color:#fff;border-radius:3px;font-weight:500}
+@media(prefers-color-scheme:dark){
+  .kp-icard.active{border-color:#378ADD;background:#0C447C}
+  .kp-cu{background:#27500A;color:#C0DD97}
+  .kp-cc{background:#378ADD;color:#fff}
+}
+#kp-tbl{border-collapse:collapse;font-family:var(--font-mono);font-size:13px}
+#kp-tbl th,#kp-tbl td{padding:4px 7px;text-align:center}
+.kp-rl{text-align:left !important;color:var(--color-text-secondary);border-right:0.5px solid var(--color-border-tertiary);padding-right:10px !important;white-space:nowrap;font-size:12px}
+.kp-ch{color:var(--color-text-tertiary);font-weight:400;font-size:11px;border-bottom:0.5px solid var(--color-border-tertiary)}
+</style>
+
+<div style="padding:1rem 0">
+<div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px">items — edit w (weight) and v (value)</div>
+<div id="kp-items" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:flex-start"></div>
+
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:1rem">
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-size:13px;color:var(--color-text-secondary)">capacity W =</span>
+    <input type="number" id="kp-cap" min="1" max="20" value="10" style="width:55px" onchange="kpRebuild()">
+  </div>
+  <div style="display:flex;gap:6px">
+    <button onclick="kpReset()">↺ Reset</button>
+    <button onclick="kpStep()">Step →</button>
+    <button id="kp-pb" onclick="kpToggle()">▶ Play</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px">
+    <span style="font-size:11px;color:var(--color-text-tertiary)">slow</span>
+    <input type="range" id="kp-spd" min="1" max="5" value="3" style="width:70px" oninput="kpSpd()">
+    <span style="font-size:11px;color:var(--color-text-tertiary)">fast</span>
+  </div>
+</div>
+
+<div id="kp-stat" style="font-family:var(--font-mono);font-size:12px;padding:8px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);margin-bottom:1rem;color:var(--color-text-secondary);min-height:34px;line-height:1.6">Press ▶ Play or Step → to begin.</div>
+
+<div style="overflow-x:auto;margin-bottom:1rem"><table id="kp-tbl"></table></div>
+<div id="kp-res" style="display:none"></div>
+</div>
+
+<script>
+(function(){
+const KP={
+  items:[{w:2,v:3},{w:3,v:4},{w:4,v:5},{w:5,v:7},{w:1,v:2}],
+  W:10,steps:[],idx:0,playing:false,timer:null,
+  speeds:[700,450,250,120,50],spdIdx:2
+};
+
+function snap(dp){return dp.map(r=>[...r]);}
+
+function compute(){
+  KP.steps=[];
+  const n=KP.items.length,W=KP.W;
+  const dp=Array.from({length:n+1},()=>new Array(W+1).fill(0));
+  KP.steps.push({phase:'init',dp:snap(dp),item:0,j:-1,
+    desc:'Base case: f[j] = 0 for all j. No items considered yet.'});
+  for(let i=1;i<=n;i++){
+    for(let j=0;j<=W;j++) dp[i][j]=dp[i-1][j];
+    const it=KP.items[i-1];
+    KP.steps.push({phase:'start',dp:snap(dp),item:i,j:-1,
+      desc:`Item ${i}: w=${it.w}, v=${it.v}. Copy row ${i-1}, then scan j from ${W} down to ${it.w}.`});
+    for(let j=W;j>=it.w;j--){
+      const prev=dp[i][j],cand=dp[i-1][j-it.w]+it.v;
+      dp[i][j]=Math.max(prev,cand);
+      KP.steps.push({phase:'upd',dp:snap(dp),item:i,j,prev,cand,newVal:dp[i][j],upd:dp[i][j]>prev,
+        desc:`j=${j}: max(f[${j}]=${prev},  f[${j-it.w}]+${it.v}=${cand})  =  ${dp[i][j]}${dp[i][j]>prev?' ← updated':''}`});
+    }
+  }
+  KP.steps.push({phase:'done',dp:snap(dp),item:n+1,j:-1,
+    desc:`Done! Maximum value = f[${W}] = ${dp[n][W]}.`});
+}
+
+function cellInfo(i,j,step){
+  const {item:ci,j:cj,phase,dp}=step;
+  if(i===0) return ['kp-cb',dp[i][j]];
+  if(i>ci||(i===ci&&phase==='init')) return ['kp-cd','·'];
+  if(i===ci){
+    if(phase==='start') return ['kp-cd',dp[i][j]];
+    if(j===cj) return ['kp-cc',dp[i][j]];
+    if(j>cj) return [dp[i][j]!==dp[i-1][j]?'kp-cu':'kp-cn',dp[i][j]];
+    return ['kp-cd',dp[i][j]];
+  }
+  return [dp[i][j]!==dp[i-1][j]?'kp-cu':'kp-cn',dp[i][j]];
+}
+
+function buildTable(){
+  const step=KP.steps[KP.idx],n=KP.items.length,W=KP.W;
+  let h='<thead><tr><th class="kp-ch kp-rl" style="text-align:left">i \\ j</th>';
+  for(let j=0;j<=W;j++) h+=`<th class="kp-ch">${j}</th>`;
+  h+='</tr></thead><tbody>';
+  for(let i=0;i<=n;i++){
+    const sub=i>0?` <span style="color:var(--color-text-tertiary)">(${KP.items[i-1].w},${KP.items[i-1].v})</span>`:'';
+    h+=`<tr><td class="kp-rl">${i===0?'∅':i}${sub}</td>`;
+    for(let j=0;j<=W;j++){const[cls,val]=cellInfo(i,j,step);h+=`<td class="${cls}">${val}</td>`;}
+    h+='</tr>';
+  }
+  document.getElementById('kp-tbl').innerHTML=h+'</tbody>';
+}
+
+function buildResult(){
+  const el=document.getElementById('kp-res'),step=KP.steps[KP.idx];
+  if(step.phase!=='done'){el.style.display='none';return;}
+  const dp=step.dp,n=KP.items.length,W=KP.W,sel=[];
+  let j=W;
+  for(let i=n;i>=1;i--){if(dp[i][j]!==dp[i-1][j]){sel.push(i-1);j-=KP.items[i-1].w;}}
+  const tw=sel.reduce((s,i)=>s+KP.items[i].w,0);
+  el.style.display='block';
+  el.innerHTML=`<div style="padding:12px 14px;border-left:2px solid #1D9E75;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-family:var(--font-mono)">
+    <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:4px">optimal solution</div>
+    <div style="font-size:18px;font-weight:500;margin-bottom:6px">max value = ${dp[n][W]}</div>
+    <div style="font-size:12px;color:var(--color-text-secondary)">selected: ${sel.length?sel.map(i=>`item ${i+1} (w=${KP.items[i].w}, v=${KP.items[i].v})`).join(', '):'none'}&nbsp;·&nbsp;total weight = ${tw} / ${W}</div>
+  </div>`;
+}
+
+function highlightItems(){
+  const step=KP.steps[KP.idx];
+  KP.items.forEach((_,idx)=>{
+    const c=document.getElementById(`kp-ic-${idx}`);
+    if(!c) return;
+    const active=step.item===idx+1&&step.phase!=='done'&&step.phase!=='init';
+    c.className='kp-icard'+(active?' active':'');
+  });
+}
+
+function render(){
+  document.getElementById('kp-stat').textContent=KP.steps[KP.idx].desc;
+  highlightItems();buildTable();buildResult();
+  document.getElementById('kp-pb').textContent=KP.playing?'⏸ Pause':'▶ Play';
+}
+
+function initUI(){
+  const cont=document.getElementById('kp-items');
+  cont.innerHTML='';
+  KP.items.forEach((it,idx)=>{
+    const d=document.createElement('div');
+    d.id=`kp-ic-${idx}`;d.className='kp-icard';
+    d.innerHTML=`<div style="font-size:11px;color:var(--color-text-tertiary)">item ${idx+1}</div><div>w=<input type="number" value="${it.w}" min="1" max="${KP.W}"></div><div>v=<input type="number" value="${it.v}" min="0" max="99"></div>`;
+    d.querySelectorAll('input')[0].onchange=e=>{KP.items[idx].w=Math.max(1,+e.target.value);kpRebuild();};
+    d.querySelectorAll('input')[1].onchange=e=>{KP.items[idx].v=Math.max(0,+e.target.value);kpRebuild();};
+    cont.appendChild(d);
+  });
+  const ab=document.createElement('button');
+  ab.textContent='+ item';ab.style.cssText='align-self:center;font-size:12px';
+  ab.onclick=()=>{if(KP.items.length<8){KP.items.push({w:2,v:3});kpRebuild();}};
+  cont.appendChild(ab);
+  if(KP.items.length>1){
+    const rb=document.createElement('button');
+    rb.textContent='− item';rb.style.cssText='align-self:center;font-size:12px';
+    rb.onclick=()=>{KP.items.pop();kpRebuild();};
+    cont.appendChild(rb);
+  }
+}
+
+function kpPlay(){
+  KP.playing=true;render();
+  KP.timer=setInterval(()=>{
+    if(KP.idx>=KP.steps.length-1){kpPause();return;}
+    KP.idx++;render();
+  },KP.speeds[KP.spdIdx]);
+}
+function kpPause(){KP.playing=false;clearInterval(KP.timer);render();}
+
+window.kpReset=()=>{kpPause();KP.idx=0;render();};
+window.kpStep=()=>{if(KP.playing)kpPause();if(KP.idx<KP.steps.length-1){KP.idx++;render();}};
+window.kpToggle=()=>{if(KP.playing)kpPause();else kpPlay();};
+window.kpRebuild=()=>{
+  kpPause();
+  KP.W=Math.max(1,Math.min(20,parseInt(document.getElementById('kp-cap').value)||10));
+  compute();initUI();KP.idx=0;render();
+};
+window.kpSpd=()=>{
+  KP.spdIdx=parseInt(document.getElementById('kp-spd').value)-1;
+  if(KP.playing){clearInterval(KP.timer);kpPlay();}
+};
+
+compute();initUI();render();
+})();
+</script>
