@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wormsort Connectivity Animation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7fb;
+      margin: 0;
+      padding: 32px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 1050px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #555;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .path-info {
+      background: #f4f4f8;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-family: Consolas, Monaco, monospace;
+      color: #333;
+    }
+
+    .graph {
+      position: relative;
+      height: 280px;
+      margin: 20px 0 30px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fafafa, #f1f1f8);
+      overflow: hidden;
+    }
+
+    .edge {
+      position: absolute;
+      top: 130px;
+      height: 8px;
+      background: #bbb;
+      border-radius: 999px;
+      z-index: 1;
+      transition: background 250ms ease, box-shadow 250ms ease;
+    }
+
+    .edge.active {
+      background: #222;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .node {
+      position: absolute;
+      top: 96px;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #222;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      z-index: 2;
+      transform: translateX(-50%);
+    }
+
+    .label {
+      position: absolute;
+      top: 178px;
+      width: 90px;
+      text-align: center;
+      font-weight: bold;
+      color: #444;
+      transform: translateX(-50%);
+      font-size: 14px;
+    }
+
+    .cow {
+      position: absolute;
+      top: 36px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 17px;
+      z-index: 3;
+      transition: left 700ms ease, top 700ms ease, transform 300ms ease;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+      transform: translateX(-50%);
+    }
+
+    .cow.bump {
+      transform: translateX(-50%) scale(1.15);
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: #222;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e9e9ef;
+      color: #222;
+    }
+
+    button:hover {
+      opacity: 0.88;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .step-box {
+      background: #f4f4f8;
+      border-radius: 14px;
+      padding: 16px 18px;
+      line-height: 1.6;
+      min-height: 82px;
+    }
+
+    .code {
+      font-family: Consolas, Monaco, monospace;
+      background: white;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .takeaway {
+      margin-top: 20px;
+      padding: 16px 18px;
+      border-left: 5px solid #222;
+      background: #fafafa;
+      border-radius: 10px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Wormsort: Why Connectivity Is Enough</h1>
+    <p class="subtitle">
+      This animation starts with a path of <b>5 locations</b>. You can add more locations to see the same proof on a longer path.
+      We swap along the path forward, then backward, so the endpoint cows exchange places and all middle cows return.
+    </p>
+
+    <div class="top-row">
+      <div class="path-info" id="pathInfo"></div>
+      <div class="controls">
+        <button class="secondary" onclick="removeNode()">Remove Location</button>
+        <button class="secondary" onclick="addNode()">Add Location</button>
+      </div>
+    </div>
+
+    <div class="graph" id="graph"></div>
+
+    <div class="controls">
+      <button onclick="play()">Play</button>
+      <button onclick="nextStep()">Next Step</button>
+      <button class="secondary" onclick="resetDemo()">Reset</button>
+    </div>
+
+    <div class="step-box" id="stepText"></div>
+
+    <div class="takeaway">
+      <b>Key idea:</b> In an undirected connected component, edge swaps can create any permutation of cows inside that component.
+      This path animation proves the basic operation: we can swap any two endpoint cows on a path.
+      Therefore, Wormsort only needs to check whether <span class="code">p[i]</span> and <span class="code">i</span> are in the same component.
+    </div>
+  </div>
+
+  <script>
+    let n = 5;
+    const minN = 2;
+    const maxN = 10;
+
+    let positions = [];
+    let cowAt = [];
+    let steps = [];
+    let stepIndex = 0;
+    let playing = false;
+
+    function cowColor(i) {
+      const colors = [
+        "#e76f51", "#2a9d8f", "#457b9d", "#9b5de5", "#f4a261",
+        "#264653", "#e63946", "#00b4d8", "#6a994e", "#bc6c25"
+      ];
+      return colors[(i - 1) % colors.length];
+    }
+
+    function label(i) {
+      return "L" + i;
+    }
+
+    function buildPositions() {
+      const graphWidth = document.getElementById("graph").clientWidth || 1000;
+      const leftPadding = 80;
+      const rightPadding = 80;
+      const usable = graphWidth - leftPadding - rightPadding;
+      positions = [];
+
+      for (let i = 0; i < n; i++) {
+        const x = n === 1 ? graphWidth / 2 : leftPadding + (usable * i) / (n - 1);
+        positions.push({ left: x, top: 36 });
+      }
+    }
+
+    function buildSteps() {
+      steps = [];
+
+      steps.push({
+        text: `Initial: cow 1 is at ${label(1)}, cow ${n} is at ${label(n)}. We want to swap these two endpoint cows using only adjacent edge swaps.`,
+        swap: null,
+        active: null
+      });
+
+      for (let i = 0; i < n - 1; i++) {
+        steps.push({
+          text: `Forward step: swap ${label(i + 1)}-${label(i + 2)}. Cow 1 moves one step closer to ${label(n)}.`,
+          swap: [i, i + 1],
+          active: i
+        });
+      }
+
+      for (let i = n - 3; i >= 0; i--) {
+        steps.push({
+          text: `Backward step: swap ${label(i + 1)}-${label(i + 2)}. This restores a middle cow while keeping endpoint cow 1 at ${label(n)}.`,
+          swap: [i, i + 1],
+          active: i
+        });
+      }
+
+      steps.push({
+        text: `Done: cow 1 and cow ${n} swapped endpoints. All middle cows returned to their original locations.`,
+        swap: null,
+        active: null
+      });
+    }
+
+    function renderGraph() {
+      const graph = document.getElementById("graph");
+      graph.innerHTML = "";
+      buildPositions();
+
+      for (let i = 0; i < n - 1; i++) {
+        const edge = document.createElement("div");
+        edge.className = "edge";
+        edge.id = "edge" + i;
+        edge.style.left = positions[i].left + "px";
+        edge.style.width = (positions[i + 1].left - positions[i].left) + "px";
+        graph.appendChild(edge);
+      }
+
+      for (let i = 0; i < n; i++) {
+        const node = document.createElement("div");
+        node.className = "node";
+        node.textContent = label(i + 1);
+        node.style.left = positions[i].left + "px";
+        graph.appendChild(node);
+
+        const text = document.createElement("div");
+        text.className = "label";
+        text.textContent = "location " + (i + 1);
+        text.style.left = positions[i].left + "px";
+        graph.appendChild(text);
+      }
+
+      for (let i = 1; i <= n; i++) {
+        const cow = document.createElement("div");
+        cow.className = "cow";
+        cow.id = "cow" + i;
+        cow.textContent = i;
+        cow.style.background = cowColor(i);
+        graph.appendChild(cow);
+      }
+
+      document.getElementById("pathInfo").textContent =
+        Array.from({ length: n }, (_, i) => label(i + 1)).join(" - ");
+    }
+
+    function resetCowState() {
+      cowAt = [];
+      for (let i = 0; i < n; i++) {
+        cowAt.push("cow" + (i + 1));
+      }
+    }
+
+    function moveCow(cowId, posIndex) {
+      const cow = document.getElementById(cowId);
+      cow.style.left = positions[posIndex].left + "px";
+      cow.style.top = positions[posIndex].top + "px";
+      cow.classList.add("bump");
+      setTimeout(() => cow.classList.remove("bump"), 300);
+    }
+
+    function drawCows() {
+      for (let i = 0; i < n; i++) {
+        moveCow(cowAt[i], i);
+      }
+    }
+
+    function clearEdges() {
+      for (let i = 0; i < n - 1; i++) {
+        const edge = document.getElementById("edge" + i);
+        if (edge) edge.classList.remove("active");
+      }
+    }
+
+    function setText(text) {
+      document.getElementById("stepText").innerHTML = text;
+    }
+
+    function applyStep() {
+      const step = steps[stepIndex];
+      clearEdges();
+
+      if (step.active !== null) {
+        document.getElementById("edge" + step.active).classList.add("active");
+      }
+
+      if (step.swap) {
+        const [u, v] = step.swap;
+        const temp = cowAt[u];
+        cowAt[u] = cowAt[v];
+        cowAt[v] = temp;
+        drawCows();
+      }
+
+      setText(`<b>Step ${stepIndex}:</b> ${step.text}`);
+    }
+
+    function nextStep() {
+      if (stepIndex >= steps.length - 1) return;
+      stepIndex++;
+      applyStep();
+    }
+
+    function resetDemo() {
+      playing = false;
+      stepIndex = 0;
+      renderGraph();
+      buildSteps();
+      resetCowState();
+      clearEdges();
+      drawCows();
+      setText(`<b>Step 0:</b> ${steps[0].text}`);
+    }
+
+    async function play() {
+      if (playing) return;
+      playing = true;
+      resetDemo();
+      playing = true;
+
+      for (let i = 1; i < steps.length; i++) {
+        await new Promise(resolve => setTimeout(resolve, 950));
+        if (!playing) return;
+        nextStep();
+      }
+
+      playing = false;
+    }
+
+    function addNode() {
+      if (n >= maxN) return;
+      n++;
+      resetDemo();
+    }
+
+    function removeNode() {
+      if (n <= minN) return;
+      n--;
+      resetDemo();
+    }
+
+    window.addEventListener("resize", resetDemo);
+    resetDemo();
+  </script>
+</body>
+</html>
